@@ -3,31 +3,13 @@
 League of Legends 向けの **MBTI風プレイスタイル診断サイト** です。  
 12問サンプルでMVPを成立させ、48問へ拡張しやすい構造を採用しています。
 
-## 全体構成（Step 3〜11の実装方針）
+## 目的
 
-1. **実装計画（Step 3）**
-   - 型・データ・ロジック・画面を責務分離して段階実装
-   - 1PR単位でレビューしやすい差分サイズを維持
-2. **ディレクトリ設計（Step 4）**
-   - `data` は定義のみ、`lib` は純関数ロジック、`components` はUI限定
-3. **型設計（Step 5）**
-   - `Question`, `QuestionOption`, `AxisKey`, `AxisScore`, `AnswerMap`, `ResultType`, `Champion`, `Role`, `DiagnosisResult`, `RecommendationReason`
-4. **データ設計（Step 6）**
-   - 8軸、7タイプ、12問、12体のチャンピオンサンプル
-5. **診断ロジック（Step 7）**
-   - 純関数: `normalizeAnswerValue`, `calculateAxisScores`, `determineResultType`, `recommendRoles`, `recommendChampions`, `buildDiagnosisResult`
-6. **画面実装（Step 8）**
-   - `/`, `/diagnosis`, `/result`
-7. **結果共有（Step 9）**
-   - URLエンコード方式を採用（MVP優先）
-8. **OGP（Step 10）**
-   - `metadata` と `generateMetadata` で最低限対応
-9. **README（Step 11）**
-   - ローカル起動・構造説明・拡張案を明記
+- MVP品質を維持しつつ、**壊れにくさ・レビューしやすさ**を優先して改善する
+- `data` / `lib` / `components` / `app` の責務を明確化する
+- URL共有時の不正入力に最低限耐える
 
----
-
-## ディレクトリ構成
+## 全体構成
 
 ```txt
 app/
@@ -44,6 +26,7 @@ data/
   questions.ts
   resultTypes.ts
 lib/
+  resultQuery.ts
   scoring.ts
   share.ts
   types.ts
@@ -52,16 +35,12 @@ tests/
   scoring.test.ts
 ```
 
----
-
 ## 使用技術
 
 - Next.js (App Router)
 - TypeScript
 - Tailwind CSS
 - Vitest
-
----
 
 ## セットアップ
 
@@ -81,66 +60,41 @@ npm run dev
 
 ```bash
 npm run test
+npm run lint
 ```
 
----
+## 実装ポリシー（重要）
 
-## データ構造の説明
+### 1) 回答状態の保持
 
-- `data/questions.ts`
-  - 12問の設問データ（5択、逆転項目、重み）
-  - `questionSeeds` を増やすだけで48問へ拡張可能
-- `data/resultTypes.ts`
-  - 7種類の結果タイプ定義（条件ベース）
-- `data/champions.ts`
-  - 12体のチャンピオン特徴量（ロール・相性計算用の数値）
+- 診断画面では `sessionStorage` に回答配列を一時保存
+- ページリロード時に可能な範囲で復元
+- 型不正値は `null` 扱いで無効化
 
----
+### 2) URL共有方式
 
-## 診断ロジックの説明
+- `v2_<回答本体>_<checksum>` 形式を採用
+- checksum不一致時は結果ページでエラー表示
+- **注**: 改ざん不能ではなく「最低限の検知」
 
-`lib/scoring.ts` は純関数中心です。
+### 3) 結果ページの安全性
 
-- `normalizeAnswerValue`: 回答値を -2〜2 に丸め、必要なら逆転
-- `calculateAxisScores`: 回答を8軸スコア（0〜100）へ変換
-- `determineResultType`: 軸スコアからタイプ判定
-- `recommendRoles`: 軸スコアとロールプロファイル距離で推薦
-- `recommendChampions`: チャンプ特徴量距離で上位を推薦
-- `buildDiagnosisResult`: 最終結果を統合生成
+- クエリ `r` を `parseResultQuery` で一元検証
+- 形式不正・欠損・未回答を明示メッセージでフォールバック
+- 推薦チャンピオンデータ欠損時にも画面を落とさない
 
-不正値や欠損値は、`normalizeAnswerValue` と `decodeAnswers` の防御で落ちにくい実装にしています。
+### 4) 責務分離
 
----
+- `lib/scoring.ts`: 純関数ベースの診断ロジック
+- `lib/resultQuery.ts`: URLクエリ解析・検証
+- `app/*`: 画面遷移と表示
+- `data/*`: 定義データのみ
 
-## 共有方式（MVP採用）
+## 現時点の制約 / TODO
 
-### A. URLパラメータエンコード
-- 実装コスト: 低
-- 保守性: 高（DB不要）
-- URL長: 質問数増で伸びる
-- 改ざん耐性: 低（MVP許容）
-- MVP適性: 高
-
-### B. サーバー保存 + share token
-- 実装コスト: 中〜高
-- 保守性: DB運用が必要
-- URL長: 短い
-- 改ざん耐性: 高
-- MVP適性: 中
-
-**現状は A を採用**。将来はBへ移行可能です。
-
----
-
-## 今後の拡張案
-
-1. 48問版への拡張（軸ごと6問）
-2. DB保存方式（share token）への移行
-3. OGP画像の動的生成（`app/api/og/route.ts` 追加）
-4. パッチ連動のチャンピオンデータ更新
-5. 多言語対応（日本語/英語）
-
----
+- TODO: URL共有は署名方式にしていないため、公開運用ではサーバー保存 + トークン方式を検討
+- TODO: OGP画像は静的メタデータのみ（動的OGPは未実装）
+- TODO: 設問48問化時は設問バランス（軸ごとの質問数と逆転項目比率）の再設計が必要
 
 ## Riot非公式表記に関する注意
 

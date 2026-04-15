@@ -13,6 +13,12 @@ const roleProfiles: Record<Role, AxisScore> = {
   SUP: { initiative: 52, riskTolerance: 42, decisionStyle: 50, winCondition: 32, combatRange: 45, processing: 50, tempo: 52, responsibility: 84 }
 };
 
+const neutralAxisScore = (): AxisScore =>
+  AXIS_KEYS.reduce((acc, axis) => {
+    acc[axis] = 50;
+    return acc;
+  }, {} as AxisScore);
+
 export const normalizeAnswerValue = (value: number, reverse = false): number => {
   if (!Number.isFinite(value)) return 0;
   const clamped = Math.max(MIN_ANSWER, Math.min(MAX_ANSWER, Math.round(value)));
@@ -20,6 +26,10 @@ export const normalizeAnswerValue = (value: number, reverse = false): number => 
 };
 
 export const calculateAxisScores = (questionList: Question[], answerMap: AnswerMap): AxisScore => {
+  if (questionList.length === 0) {
+    return neutralAxisScore();
+  }
+
   const raw = Object.fromEntries(AXIS_KEYS.map((axis) => [axis, 0])) as Record<AxisKey, number>;
   const maxAbs = Object.fromEntries(AXIS_KEYS.map((axis) => [axis, 0])) as Record<AxisKey, number>;
 
@@ -100,6 +110,10 @@ const buildChampionReason = (axisScore: AxisScore, champion: Champion) => {
 };
 
 export const recommendChampions = (axisScore: AxisScore, roleHints: Role[], limit = 5): DiagnosisResult["recommendedChampions"] => {
+  if (champions.length === 0) {
+    return [];
+  }
+
   const safeLimit = Math.max(1, Math.min(limit, 10));
   const scoped = champions.filter((champion) => roleHints.includes(champion.primaryRole) || (champion.secondaryRole && roleHints.includes(champion.secondaryRole)));
   const target = scoped.length > 0 ? scoped : champions;
