@@ -1,8 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AxisBars } from "@/components/AxisBars";
-import { buildDiagnosis } from "@/lib/scoring";
+import { questions } from "@/data/questions";
+import { buildDiagnosisResult } from "@/lib/scoring";
 import { decodeAnswers } from "@/lib/share";
+import type { AnswerMap } from "@/lib/types";
+
+const toAnswerMap = (answers: number[]): AnswerMap =>
+  Object.fromEntries(questions.map((question, index) => [question.id, answers[index]]));
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -16,7 +21,7 @@ const getResult = async (searchParams: Props["searchParams"]) => {
   if (!answers) return null;
 
   try {
-    return buildDiagnosis(answers);
+    return buildDiagnosisResult(questions, toAnswerMap(answers));
   } catch {
     return null;
   }
@@ -24,8 +29,8 @@ const getResult = async (searchParams: Props["searchParams"]) => {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const result = await getResult(searchParams);
-  const title = result ? `${result.typeName} | LoL診断結果` : "診断結果 | LoL Playstyle Type Finder";
-  const description = result ? result.oneLiner : "LoL向けプレイスタイル診断結果";
+  const title = result ? `${result.type.name} | LoL診断結果` : "診断結果 | LoL Playstyle Type Finder";
+  const description = result ? result.type.oneLiner : "LoL向けプレイスタイル診断結果";
 
   return {
     title,
@@ -34,6 +39,11 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       title,
       description,
       type: "article"
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description
     }
   };
 }
@@ -56,21 +66,21 @@ export default async function ResultPage({ searchParams }: Props) {
     );
   }
 
-  const shareText = encodeURIComponent(`LoL診断結果: ${result.typeName} - ${result.oneLiner}`);
+  const shareText = encodeURIComponent(`LoL診断結果: ${result.type.name} - ${result.type.oneLiner}`);
   const shareUrl = encodeURIComponent(`${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/result?r=${encoded}`);
 
   return (
     <div className="space-y-4">
       <section className="card space-y-3">
         <p className="text-sm text-accent">診断結果</p>
-        <h1 className="text-3xl font-bold">{result.typeName}</h1>
-        <p className="text-lg text-cyan-100">{result.oneLiner}</p>
-        <p className="text-muted">{result.description}</p>
+        <h1 className="text-3xl font-bold">{result.type.name}</h1>
+        <p className="text-lg text-cyan-100">{result.type.oneLiner}</p>
+        <p className="text-muted">{result.type.description}</p>
       </section>
 
       <section className="card space-y-4">
         <h2 className="text-xl font-semibold">8軸スコア</h2>
-        <AxisBars scores={result.axisScores} />
+        <AxisBars scores={result.axisScore} />
       </section>
 
       <section className="card space-y-3">
@@ -95,7 +105,8 @@ export default async function ResultPage({ searchParams }: Props) {
                 </p>
                 <span className="text-sm text-cyan-200">相性 {Math.round(score)}</span>
               </div>
-              <p className="mt-1 text-sm text-muted">{reason}</p>
+              <p className="mt-1 text-sm text-cyan-100">{reason.title}</p>
+              <p className="mt-1 text-sm text-muted">{reason.body}</p>
             </li>
           ))}
         </ul>

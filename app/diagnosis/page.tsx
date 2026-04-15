@@ -18,6 +18,7 @@ export default function DiagnosisPage() {
   const question = questions[index];
   const answeredCount = useMemo(() => answers.filter((v) => v !== null).length, [answers]);
   const isCurrentAnswered = answers[index] !== null;
+  const isComplete = answeredCount === questions.length;
 
   const onSelect = (value: -2 | -1 | 0 | 1 | 2) => {
     setError(null);
@@ -35,23 +36,21 @@ export default function DiagnosisPage() {
     }
 
     if (index === questions.length - 1) {
+      if (!isComplete) {
+        setError("未回答の設問があります。前の設問を確認してください。");
+        return;
+      }
       const finalized = answers.map((value) => value ?? 0);
       const encoded = encodeAnswers(finalized);
       if (!encoded) {
         setError("回答データが不正です。最初からやり直してください。");
         return;
       }
-
       router.push(`/result?r=${encoded}`);
       return;
     }
 
     setIndex((prev) => prev + 1);
-  };
-
-  const onPrev = () => {
-    setError(null);
-    setIndex((prev) => Math.max(0, prev - 1));
   };
 
   return (
@@ -62,7 +61,7 @@ export default function DiagnosisPage() {
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       <div className="flex items-center justify-between gap-3">
-        <button type="button" className="btn-secondary" onClick={onPrev} disabled={index === 0}>
+        <button type="button" className="btn-secondary" onClick={() => setIndex((prev) => Math.max(0, prev - 1))} disabled={index === 0}>
           前へ
         </button>
         <p className="text-xs text-muted">回答済み: {answeredCount} / {questions.length}</p>

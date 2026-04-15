@@ -8,6 +8,11 @@ export const metadata: Metadata = {
     title: "LoL Playstyle Type Finder",
     description: "LoL向けの非公式ファン診断サイト",
     type: "website"
+  },
+  twitter: {
+    card: "summary",
+    title: "LoL Playstyle Type Finder",
+    description: "LoL向けの非公式ファン診断サイト"
   }
 };
 

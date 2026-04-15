@@ -1,4 +1,4 @@
-import { AXIS_KEYS, type AxisScores } from "@/lib/types";
+import { AXIS_KEYS, type AxisScore } from "@/lib/types";
 
 const axisLabel: Record<(typeof AXIS_KEYS)[number], string> = {
   initiative: "主導性",
@@ -11,7 +11,7 @@ const axisLabel: Record<(typeof AXIS_KEYS)[number], string> = {
   responsibility: "責任領域"
 };
 
-export function AxisBars({ scores }: { scores: AxisScores }) {
+export function AxisBars({ scores }: { scores: AxisScore }) {
   return (
     <div className="grid gap-3">
       {AXIS_KEYS.map((axis) => (
