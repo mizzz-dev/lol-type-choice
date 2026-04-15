@@ -1,74 +1,55 @@
-import type { TypeRule } from "@/lib/types";
+import type { ResultType } from "@/lib/types";
 
-export const resultTypeRules: TypeRule[] = [
+export const resultTypes: ResultType[] = [
   {
     id: "vanguard-carry",
     name: "先導キャリー型",
-    oneLiner: "自ら主導し、勝負どころで試合を決めるタイプ。",
-    description: "積極的な主導と高いキャリー志向が特徴。主導権を握ってテンポを作る役割が噛み合います。",
-    conditions: {
-      initiative: { min: 65 },
-      winCondition: { min: 60 },
-      riskTolerance: { min: 55 }
-    }
+    oneLiner: "自ら主導し、勝負所で試合を決めるタイプ。",
+    description: "主導権を握って仕掛ける動きが得意。キャリー期待値の高い役割で強みが出ます。",
+    conditions: { initiative: { min: 65 }, winCondition: { min: 60 }, riskTolerance: { min: 55 } }
   },
   {
-    id: "calm-control",
+    id: "calm-controller",
     name: "冷静コントロール型",
-    oneLiner: "安全性と再現性を重視して勝率を積み上げるタイプ。",
-    description: "計画性と安定志向に優れ、ミスを減らしながら確実に勝ち筋を通します。",
-    conditions: {
-      decisionStyle: { max: 45 },
-      riskTolerance: { max: 45 },
-      initiative: { min: 40, max: 65 }
-    }
+    oneLiner: "安全性と再現性で勝率を積み上げるタイプ。",
+    description: "大崩れを避けながら有利を広げるのが得意。安定した判断で勝ち筋を通します。",
+    conditions: { decisionStyle: { max: 45 }, riskTolerance: { max: 45 } }
   },
   {
-    id: "scaling-grower",
-    name: "成長重視スケーリング型",
-    oneLiner: "序盤を耐えて、終盤の爆発力で勝ち切るタイプ。",
-    description: "テンポ軸が終盤寄りで、安定してリソースを積み重ねるプレイに向いています。",
-    conditions: {
-      tempo: { min: 60 },
-      riskTolerance: { min: 35, max: 65 }
-    }
+    id: "late-game-scaler",
+    name: "終盤スケール型",
+    oneLiner: "時間を味方にして後半で勝負するタイプ。",
+    description: "序盤の不利を許容しつつ、終盤のパワースパイクを活かす戦い方に向いています。",
+    conditions: { tempo: { min: 60 }, winCondition: { min: 50 } }
   },
   {
-    id: "ally-tactician",
-    name: "仲間支援戦術型",
-    oneLiner: "味方を活かし、マップ全体の勝ち筋を設計するタイプ。",
-    description: "チーム貢献とマップ関与が高く、連携を軸に価値を出せます。",
-    conditions: {
-      winCondition: { max: 40 },
-      responsibility: { min: 60 }
-    }
+    id: "map-support-shotcaller",
+    name: "マップ支援設計型",
+    oneLiner: "視界・ローム・連携でチームを勝たせるタイプ。",
+    description: "チーム貢献と全体把握に優れ、戦況を整える役割で価値を発揮します。",
+    conditions: { winCondition: { max: 45 }, responsibility: { min: 60 } }
   },
   {
-    id: "ambush-shotcaller",
-    name: "奇襲主導型",
-    oneLiner: "アドリブ力と勝負勘で局面を切り開くタイプ。",
-    description: "判断の速さと仕掛けの大胆さが強み。テンポを崩す奇襲プレイで差を作れます。",
-    conditions: {
-      decisionStyle: { min: 60 },
-      riskTolerance: { min: 60 },
-      responsibility: { min: 50 }
-    }
+    id: "adaptive-skirmisher",
+    name: "適応スカーミッシュ型",
+    oneLiner: "アドリブと局所戦で流れを変えるタイプ。",
+    description: "状況変化に強く、少人数戦で有利交換を取る判断に強みがあります。",
+    conditions: { decisionStyle: { min: 60 }, initiative: { min: 55 } }
   },
   {
     id: "steady-executor",
     name: "安定遂行型",
-    oneLiner: "役割遂行に徹し、堅実に勝ちへ寄与するタイプ。",
-    description: "極端な賭けを避け、必要な仕事を正確にこなすことでチームの土台になります。",
-    conditions: {
-      riskTolerance: { max: 55 },
-      initiative: { max: 55 }
-    }
+    oneLiner: "役割遂行で堅実に勝利へ貢献するタイプ。",
+    description: "極端な賭けを避け、必要な仕事を積み重ねることでチームを支えます。",
+    conditions: { initiative: { max: 55 }, riskTolerance: { max: 55 } }
+  },
+  {
+    id: "balanced-generalist",
+    name: "バランス型オールラウンダー",
+    oneLiner: "編成や味方に合わせて柔軟に適応できるタイプ。",
+    description: "軸の偏りが少なく、状況ごとに最適な選択へ寄せられる汎用性が武器です。",
+    conditions: {}
   }
 ];
 
-export const fallbackResultType = {
-  id: "adaptive-generalist",
-  name: "適応型オールラウンダー",
-  oneLiner: "状況に合わせて役割を切り替えられる柔軟タイプ。",
-  description: "軸の偏りが少なく、編成や味方に合わせて最適化する立ち回りが得意です。"
-};
+export const fallbackResultType = resultTypes[resultTypes.length - 1];

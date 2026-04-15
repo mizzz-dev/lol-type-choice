@@ -1,147 +1,132 @@
 import { champions } from "@/data/champions";
-import { fallbackResultType, resultTypeRules } from "@/data/resultTypes";
-import { questions } from "@/data/questions";
-import { AXIS_KEYS, type AxisKey, type AxisScores, type DiagnosisResult, type Role } from "@/lib/types";
-import { validateAnswers } from "@/lib/validation";
+import { fallbackResultType, resultTypes } from "@/data/resultTypes";
+import { AXIS_KEYS, type AnswerMap, type AxisKey, type AxisScore, type Champion, type DiagnosisResult, type Question, type ResultType, type Role } from "@/lib/types";
 
-const scoreToPercent = (value: number, maxAbs: number): number => {
-  if (maxAbs <= 0) return 50;
-  const normalized = value / maxAbs;
-  const percent = Math.round(((normalized + 1) / 2) * 100);
-  return Math.max(0, Math.min(100, percent));
+const MIN_ANSWER = -2;
+const MAX_ANSWER = 2;
+
+const roleProfiles: Record<Role, AxisScore> = {
+  TOP: { initiative: 60, riskTolerance: 55, decisionStyle: 45, winCondition: 65, combatRange: 35, processing: 48, tempo: 42, responsibility: 38 },
+  JG: { initiative: 75, riskTolerance: 62, decisionStyle: 58, winCondition: 48, combatRange: 38, processing: 60, tempo: 50, responsibility: 80 },
+  MID: { initiative: 68, riskTolerance: 57, decisionStyle: 62, winCondition: 65, combatRange: 62, processing: 60, tempo: 56, responsibility: 60 },
+  ADC: { initiative: 45, riskTolerance: 50, decisionStyle: 46, winCondition: 72, combatRange: 82, processing: 54, tempo: 66, responsibility: 44 },
+  SUP: { initiative: 52, riskTolerance: 42, decisionStyle: 50, winCondition: 32, combatRange: 45, processing: 50, tempo: 52, responsibility: 84 }
 };
 
-const computeAxisScores = (answers: number[]): AxisScores => {
-  const raw: Record<AxisKey, number> = Object.fromEntries(AXIS_KEYS.map((axis) => [axis, 0])) as Record<AxisKey, number>;
-  const maxAbsByAxis: Record<AxisKey, number> = Object.fromEntries(AXIS_KEYS.map((axis) => [axis, 0])) as Record<AxisKey, number>;
+export const normalizeAnswerValue = (value: number, reverse = false): number => {
+  if (!Number.isFinite(value)) return 0;
+  const clamped = Math.max(MIN_ANSWER, Math.min(MAX_ANSWER, Math.round(value)));
+  return reverse ? clamped * -1 : clamped;
+};
 
-  questions.forEach((question, index) => {
-    const answer = question.reverseScored ? answers[index] * -1 : answers[index];
+export const calculateAxisScores = (questionList: Question[], answerMap: AnswerMap): AxisScore => {
+  const raw = Object.fromEntries(AXIS_KEYS.map((axis) => [axis, 0])) as Record<AxisKey, number>;
+  const maxAbs = Object.fromEntries(AXIS_KEYS.map((axis) => [axis, 0])) as Record<AxisKey, number>;
 
-    question.weights.forEach((weight) => {
+  for (const question of questionList) {
+    const answer = normalizeAnswerValue(answerMap[question.id] ?? 0, question.reverse);
+    for (const weight of question.weights) {
       raw[weight.axis] += answer * weight.weight;
-      maxAbsByAxis[weight.axis] += 2 * weight.weight;
+      maxAbs[weight.axis] += MAX_ANSWER * weight.weight;
+    }
+  }
+
+  return AXIS_KEYS.reduce((acc, axis) => {
+    if (maxAbs[axis] <= 0) {
+      acc[axis] = 50;
+      return acc;
+    }
+    const ratio = raw[axis] / maxAbs[axis];
+    acc[axis] = Math.max(0, Math.min(100, Math.round(((ratio + 1) / 2) * 100)));
+    return acc;
+  }, {} as AxisScore);
+};
+
+export const determineResultType = (axisScore: AxisScore): ResultType => {
+  const matched = resultTypes.find((resultType) => {
+    const conditions = resultType.conditions;
+    return Object.entries(conditions).every(([axis, rule]) => {
+      const value = axisScore[axis as AxisKey];
+      if (typeof rule.min === "number" && value < rule.min) return false;
+      if (typeof rule.max === "number" && value > rule.max) return false;
+      return true;
     });
   });
 
-  return AXIS_KEYS.reduce((acc, axis) => {
-    acc[axis] = scoreToPercent(raw[axis], maxAbsByAxis[axis]);
-    return acc;
-  }, {} as AxisScores);
-};
-
-const satisfiesRule = (axisScores: AxisScores, conditions: Record<string, { min?: number; max?: number }>): boolean =>
-  Object.entries(conditions).every(([axis, limit]) => {
-    const value = axisScores[axis as AxisKey];
-    if (typeof limit.min === "number" && value < limit.min) return false;
-    if (typeof limit.max === "number" && value > limit.max) return false;
-    return true;
-  });
-
-const pickType = (axisScores: AxisScores) => {
-  const matched = resultTypeRules.find((rule) => satisfiesRule(axisScores, rule.conditions));
   return matched ?? fallbackResultType;
 };
 
-const roleProfiles: Record<Role, Record<AxisKey, number>> = {
-  TOP: { initiative: 60, riskTolerance: 55, decisionStyle: 45, winCondition: 62, combatRange: 35, processing: 50, tempo: 45, responsibility: 40 },
-  JG: { initiative: 75, riskTolerance: 62, decisionStyle: 58, winCondition: 50, combatRange: 40, processing: 60, tempo: 48, responsibility: 78 },
-  MID: { initiative: 68, riskTolerance: 58, decisionStyle: 60, winCondition: 65, combatRange: 62, processing: 58, tempo: 55, responsibility: 62 },
-  ADC: { initiative: 45, riskTolerance: 50, decisionStyle: 45, winCondition: 72, combatRange: 80, processing: 52, tempo: 64, responsibility: 42 },
-  SUP: { initiative: 52, riskTolerance: 42, decisionStyle: 50, winCondition: 30, combatRange: 45, processing: 50, tempo: 52, responsibility: 82 }
-};
+const roleDistance = (axisScore: AxisScore, role: Role): number =>
+  AXIS_KEYS.reduce((total, axis) => total + Math.abs(axisScore[axis] - roleProfiles[role][axis]), 0);
 
-const roleDistance = (axisScores: AxisScores, role: Role): number => {
-  const profile = roleProfiles[role];
-  return AXIS_KEYS.reduce((acc, axis) => acc + Math.abs(axisScores[axis] - profile[axis]), 0);
-};
-
-const pickRoles = (axisScores: AxisScores): Role[] =>
-  (Object.keys(roleProfiles) as Role[])
-    .map((role) => ({ role, distance: roleDistance(axisScores, role) }))
+export const recommendRoles = (axisScore: AxisScore, limit = 2): Role[] => {
+  const safeLimit = Math.max(1, Math.min(limit, 5));
+  return (Object.keys(roleProfiles) as Role[])
+    .map((role) => ({ role, distance: roleDistance(axisScore, role) }))
     .sort((a, b) => a.distance - b.distance)
-    .slice(0, 2)
-    .map((item) => item.role);
+    .slice(0, safeLimit)
+    .map((entry) => entry.role);
+};
 
-const championVectorFromAxis = (axis: AxisScores) => ({
-  engage: axis.initiative / 10,
-  carryPotential: axis.winCondition / 10,
-  teamUtility: (100 - axis.winCondition) / 10,
-  scaling: axis.tempo / 10,
-  mapInfluence: axis.responsibility / 10,
-  complexity: axis.processing / 10,
-  rangePreference: axis.combatRange / 10,
-  riskDemand: axis.riskTolerance / 10,
-  selfReliance: (100 - axis.responsibility + axis.winCondition) / 20
+const axisToChampionPreference = (axisScore: AxisScore) => ({
+  engage: axisScore.initiative / 10,
+  carryPotential: axisScore.winCondition / 10,
+  teamUtility: (100 - axisScore.winCondition) / 10,
+  scaling: axisScore.tempo / 10,
+  mapInfluence: axisScore.responsibility / 10,
+  complexity: axisScore.processing / 10,
+  rangePreference: axisScore.combatRange / 10,
+  riskDemand: axisScore.riskTolerance / 10,
+  selfReliance: (100 - axisScore.responsibility + axisScore.winCondition) / 20
 });
 
-const championCompatibility = (axisScores: AxisScores, champion: (typeof champions)[number]): number => {
-  const desired = championVectorFromAxis(axisScores);
-  const dimensions = [
-    "engage",
-    "carryPotential",
-    "teamUtility",
-    "scaling",
-    "mapInfluence",
-    "complexity",
-    "rangePreference",
-    "riskDemand",
-    "selfReliance"
-  ] as const;
-
-  const distance = dimensions.reduce(
-    (acc, key) => acc + Math.abs(desired[key] - champion[key]),
-    0
-  );
-
-  return Number((100 - distance * 4).toFixed(2));
+const championDistance = (axisScore: AxisScore, champion: Champion): number => {
+  const desired = axisToChampionPreference(axisScore);
+  const dimensions = Object.keys(desired) as Array<keyof typeof desired>;
+  return dimensions.reduce((sum, key) => sum + Math.abs(desired[key] - champion[key]), 0);
 };
 
-const reasonFromChampion = (axisScores: AxisScores, champion: (typeof champions)[number]): string => {
-  if (axisScores.responsibility >= 60 && champion.mapInfluence >= 7) {
-    return "マップ全体への関与志向と、チャンプの高い影響力が噛み合います。";
+const buildChampionReason = (axisScore: AxisScore, champion: Champion) => {
+  if (axisScore.winCondition >= 60 && champion.carryPotential >= 7) {
+    return { title: "キャリー適性", body: "自分で試合を決めたい傾向と、終盤の火力期待値が噛み合います。" };
   }
-
-  if (axisScores.winCondition >= 60 && champion.carryPotential >= 7) {
-    return "キャリー志向に対して、ダメージ期待値の高い性能が合っています。";
+  if (axisScore.responsibility >= 60 && champion.mapInfluence >= 7) {
+    return { title: "マップ関与", body: "全体状況を見て動く傾向と、ロームやオブジェクト関与性能が一致しています。" };
   }
-
-  if (axisScores.winCondition <= 40 && champion.teamUtility >= 8) {
-    return "チーム貢献重視の傾向に、味方支援性能がフィットします。";
+  if (axisScore.processing <= 45 && champion.complexity <= 4) {
+    return { title: "操作安定性", body: "操作負荷を抑えながら、役割価値を出しやすい選択です。" };
   }
-
-  if (axisScores.processing <= 45 && champion.complexity <= 4) {
-    return "操作難度を抑えつつ、役割価値を出しやすい選択です。";
-  }
-
-  return "回答傾向の軸バランスと、チャンプ特性の総合相性が高いです。";
+  return { title: "総合相性", body: "回答傾向の軸バランスと、チャンピオン特性の総合相性が高いです。" };
 };
 
-export const buildDiagnosis = (answers: number[]): DiagnosisResult => {
-  const validation = validateAnswers(answers);
-  if (!validation.valid) {
-    throw new Error(validation.message);
-  }
+export const recommendChampions = (axisScore: AxisScore, roleHints: Role[], limit = 5): DiagnosisResult["recommendedChampions"] => {
+  const safeLimit = Math.max(1, Math.min(limit, 10));
+  const scoped = champions.filter((champion) => roleHints.includes(champion.primaryRole) || (champion.secondaryRole && roleHints.includes(champion.secondaryRole)));
+  const target = scoped.length > 0 ? scoped : champions;
 
-  const axisScores = computeAxisScores(answers);
-  const type = pickType(axisScores);
-  const recommendedRoles = pickRoles(axisScores);
-
-  const recommendedChampions = champions
-    .map((champion) => ({
-      champion,
-      score: championCompatibility(axisScores, champion)
-    }))
+  return target
+    .map((champion) => {
+      const distance = championDistance(axisScore, champion);
+      const score = Math.max(0, Math.round((100 - distance * 4) * 100) / 100);
+      return {
+        champion,
+        score,
+        reason: buildChampionReason(axisScore, champion)
+      };
+    })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map((item) => ({ ...item, reason: reasonFromChampion(axisScores, item.champion) }));
+    .slice(0, safeLimit);
+};
+
+export const buildDiagnosisResult = (questionList: Question[], answerMap: AnswerMap): DiagnosisResult => {
+  const axisScore = calculateAxisScores(questionList, answerMap);
+  const type = determineResultType(axisScore);
+  const recommendedRoles = recommendRoles(axisScore, 2);
+  const recommendedChampions = recommendChampions(axisScore, recommendedRoles, 5);
 
   return {
-    typeId: type.id,
-    typeName: type.name,
-    oneLiner: type.oneLiner,
-    description: type.description,
-    axisScores,
+    type,
+    axisScore,
     recommendedRoles,
     recommendedChampions
   };

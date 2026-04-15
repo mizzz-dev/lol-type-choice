@@ -11,13 +11,18 @@ export const AXIS_KEYS = [
 
 export type AxisKey = (typeof AXIS_KEYS)[number];
 
-export type AxisScores = Record<AxisKey, number>;
+export type AxisScore = Record<AxisKey, number>;
 
 export type Role = "TOP" | "JG" | "MID" | "ADC" | "SUP";
 
 export type OptionValue = -2 | -1 | 0 | 1 | 2;
 
-export interface QuestionAxisWeight {
+export interface QuestionOption {
+  label: string;
+  value: OptionValue;
+}
+
+export interface AxisWeight {
   axis: AxisKey;
   weight: number;
 }
@@ -26,11 +31,19 @@ export interface Question {
   id: string;
   order: number;
   text: string;
-  reverseScored: boolean;
-  weights: QuestionAxisWeight[];
+  options: QuestionOption[];
+  reverse: boolean;
+  weights: AxisWeight[];
 }
 
-export interface TypeRule {
+export type AnswerMap = Record<string, OptionValue>;
+
+export interface RecommendationReason {
+  title: string;
+  body: string;
+}
+
+export interface ResultType {
   id: string;
   name: string;
   oneLiner: string;
@@ -43,7 +56,7 @@ export interface Champion {
   slug: string;
   primaryRole: Role;
   secondaryRole?: Role;
-  difficulty: number;
+  tags: string[];
   engage: number;
   carryPotential: number;
   teamUtility: number;
@@ -56,11 +69,12 @@ export interface Champion {
 }
 
 export interface DiagnosisResult {
-  typeId: string;
-  typeName: string;
-  oneLiner: string;
-  description: string;
-  axisScores: AxisScores;
+  type: ResultType;
+  axisScore: AxisScore;
   recommendedRoles: Role[];
-  recommendedChampions: Array<{ champion: Champion; score: number; reason: string }>;
+  recommendedChampions: Array<{
+    champion: Champion;
+    score: number;
+    reason: RecommendationReason;
+  }>;
 }

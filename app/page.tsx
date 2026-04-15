@@ -7,10 +7,11 @@ export default function HomePage() {
         <p className="text-sm text-accent">LoL Playstyle Type Finder</p>
         <h1 className="text-3xl font-bold">League of Legends向け MBTI風プレイスタイル診断</h1>
         <p className="text-muted">
-          48問の質問に答えると、あなたのプレイ傾向を8軸で分析し、相性の良いロールとチャンピオンを提案します。
+          12問の質問に答えると、あなたのプレイ傾向を8軸で分析し、相性の良いロールとチャンピオンを提案します。
+          本MVPは将来48問へ拡張しやすいデータ構造で実装しています。
         </p>
         <div className="rounded-lg border border-amber-300/40 bg-amber-100/10 p-3 text-sm text-amber-200">
-          所要時間目安: 4〜6分
+          所要時間目安: 1〜2分
         </div>
         <Link href="/diagnosis" className="btn-primary w-full sm:w-auto">
           診断をはじめる
