@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-base text-text min-h-screen;
+}
+
+.card {
+  @apply rounded-xl border border-slate-700 bg-card p-6 shadow-md;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 font-semibold text-slate-900 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-lg border border-slate-600 px-4 py-2 font-semibold text-text transition hover:bg-slate-800;
+}
