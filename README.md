@@ -1,13 +1,16 @@
-# LoL Playstyle Type Finder (MVP)
+# LoL Playstyle Type Finder (β)
 
 League of Legends 向けの **MBTI風プレイスタイル診断サイト** です。  
-12問サンプルでMVPを成立させ、48問へ拡張しやすい構造を採用しています。
+β版では 48 問・8軸分析・8タイプ分類に拡張し、結果の納得感と共有しやすさを改善しています。
 
-## 目的
+## β版での主な改善
 
-- MVP品質を維持しつつ、**壊れにくさ・レビューしやすさ**を優先して改善する
-- `data` / `lib` / `components` / `app` の責務を明確化する
-- URL共有時の不正入力に最低限耐える
+- 設問を 12 問 → 48 問へ拡張（各軸6問・逆転項目あり）
+- 結果タイプを 8 種に再整理し、強み / 注意点の説明を追加
+- チャンプデータを 20体+ へ拡張
+- 診断ページの進捗UX改善（残り問数表示、復元、離脱計測）
+- 結果ページの情報設計改善（上位軸表示、注意点、共有文言）
+- 軽量イベント計測（開始/回答/離脱/完了/共有/再診断）
 
 ## 全体構成
 
@@ -21,11 +24,13 @@ components/
   AxisBars.tsx
   ProgressBar.tsx
   QuestionCard.tsx
+  ResultActions.tsx
 data/
   champions.ts
   questions.ts
   resultTypes.ts
 lib/
+  analytics.ts
   resultQuery.ts
   scoring.ts
   share.ts
@@ -48,7 +53,7 @@ tests/
 npm install
 ```
 
-## 起動方法
+## 起動
 
 ```bash
 npm run dev
@@ -61,40 +66,21 @@ npm run dev
 ```bash
 npm run test
 npm run lint
+npm run build
 ```
 
-## 実装ポリシー（重要）
+## 計測イベント（最小実装）
 
-### 1) 回答状態の保持
+`lib/analytics.ts` の `trackEvent` で `dataLayer` / `gtag` に送信します。
 
-- 診断画面では `sessionStorage` に回答配列を一時保存
-- ページリロード時に可能な範囲で復元
-- 型不正値は `null` 扱いで無効化
+- `diagnosis_started`
+- `question_answered`
+- `diagnosis_abandoned`
+- `diagnosis_completed`
+- `result_shared`
+- `retake_clicked`
 
-### 2) URL共有方式
-
-- `v2_<回答本体>_<checksum>` 形式を採用
-- checksum不一致時は結果ページでエラー表示
-- **注**: 改ざん不能ではなく「最低限の検知」
-
-### 3) 結果ページの安全性
-
-- クエリ `r` を `parseResultQuery` で一元検証
-- 形式不正・欠損・未回答を明示メッセージでフォールバック
-- 推薦チャンピオンデータ欠損時にも画面を落とさない
-
-### 4) 責務分離
-
-- `lib/scoring.ts`: 純関数ベースの診断ロジック
-- `lib/resultQuery.ts`: URLクエリ解析・検証
-- `app/*`: 画面遷移と表示
-- `data/*`: 定義データのみ
-
-## 現時点の制約 / TODO
-
-- TODO: URL共有は署名方式にしていないため、公開運用ではサーバー保存 + トークン方式を検討
-- TODO: OGP画像は静的メタデータのみ（動的OGPは未実装）
-- TODO: 設問48問化時は設問バランス（軸ごとの質問数と逆転項目比率）の再設計が必要
+> TODO: 本番運用時はイベントの重複除去・セッションID採番・同意バナー連携を追加。
 
 ## Riot非公式表記に関する注意
 

@@ -11,6 +11,10 @@ const answerAll = (value: -2 | -1 | 0 | 1 | 2): AnswerMap =>
 const toArray = (map: AnswerMap) => questions.map((question) => map[question.id]);
 
 describe("diagnosis scoring", () => {
+  test("48問が読み込まれる", () => {
+    expect(questions).toHaveLength(48);
+  });
+
   test("同一回答で同一結果になる", () => {
     const answers = answerAll(1);
     const a = buildDiagnosisResult(questions, answers);
@@ -35,6 +39,7 @@ describe("diagnosis scoring", () => {
     const incomplete: AnswerMap = { [questions[0].id]: 2 };
     const result = buildDiagnosisResult(questions, incomplete);
     expect(result.recommendedRoles.length).toBeGreaterThan(0);
+    expect(result.recommendedChampions.length).toBeGreaterThan(0);
   });
 
   test("結果URLの再現性", () => {

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { questions } from "@/data/questions";
 import { ProgressBar } from "@/components/ProgressBar";
 import { QuestionCard } from "@/components/QuestionCard";
 import { encodeAnswers } from "@/lib/share";
+import { trackEvent } from "@/lib/analytics";
 import { isOptionValue } from "@/lib/validation";
 
-const STORAGE_KEY = "lol-type-choice.answers.v1";
+const STORAGE_KEY = "lol-type-choice.answers.v2";
 
 const initialAnswers = Array.from({ length: questions.length }, () => null as number | null);
 
@@ -32,17 +33,29 @@ export default function DiagnosisPage() {
   const [answers, setAnswers] = useState<(number | null)[]>(initialAnswers);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const hasCompletedRef = useRef(false);
 
   useEffect(() => {
     const restored = parseStoredAnswers(window.sessionStorage.getItem(STORAGE_KEY));
     if (restored) {
       setAnswers(restored);
     }
+    trackEvent("diagnosis_started", { question_count: questions.length, version: "beta" });
   }, []);
 
   useEffect(() => {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
   }, [answers]);
+
+  useEffect(
+    () => () => {
+      if (!hasCompletedRef.current) {
+        const answered = answers.filter((v) => v !== null).length;
+        trackEvent("diagnosis_abandoned", { answered_count: answered, question_count: questions.length });
+      }
+    },
+    [answers]
+  );
 
   const question = questions[index];
   const answeredCount = useMemo(() => answers.filter((v) => v !== null).length, [answers]);
@@ -56,6 +69,7 @@ export default function DiagnosisPage() {
       next[index] = value;
       return next;
     });
+    trackEvent("question_answered", { question_id: question.id, question_index: index + 1, value });
   };
 
   const onNext = () => {
@@ -75,6 +89,8 @@ export default function DiagnosisPage() {
         setError("回答データが不正です。最初からやり直してください。");
         return;
       }
+      hasCompletedRef.current = true;
+      trackEvent("diagnosis_completed", { question_count: questions.length, answer_version: "v2" });
       window.sessionStorage.removeItem(STORAGE_KEY);
       router.push(`/result?r=${encoded}`);
       return;
@@ -85,17 +101,22 @@ export default function DiagnosisPage() {
 
   return (
     <div className="space-y-4">
+      <section className="card space-y-2">
+        <h1 className="text-2xl font-bold">プレイスタイル診断（β）</h1>
+        <p className="text-sm text-muted">全{questions.length}問 / 目安4〜6分。途中離脱しても同じブラウザなら復元されます。</p>
+      </section>
+
       <ProgressBar current={index + 1} total={questions.length} />
       <QuestionCard question={question} value={answers[index] ?? undefined} onSelect={onSelect} />
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       <div className="flex items-center justify-between gap-3">
-        <button type="button" className="btn-secondary" onClick={() => setIndex((prev) => Math.max(0, prev - 1))} disabled={index === 0}>
+        <button type="button" className="btn-secondary min-w-20" onClick={() => setIndex((prev) => Math.max(0, prev - 1))} disabled={index === 0}>
           前へ
         </button>
         <p className="text-xs text-muted">回答済み: {answeredCount} / {questions.length}</p>
-        <button type="button" className="btn-primary" onClick={onNext}>
+        <button type="button" className="btn-primary min-w-20" onClick={onNext}>
           {index === questions.length - 1 ? "結果を見る" : "次へ"}
         </button>
       </div>

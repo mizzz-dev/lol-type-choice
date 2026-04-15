@@ -97,16 +97,17 @@ const championDistance = (axisScore: AxisScore, champion: Champion): number => {
 };
 
 const buildChampionReason = (axisScore: AxisScore, champion: Champion) => {
-  if (axisScore.winCondition >= 60 && champion.carryPotential >= 7) {
-    return { title: "キャリー適性", body: "自分で試合を決めたい傾向と、終盤の火力期待値が噛み合います。" };
-  }
-  if (axisScore.responsibility >= 60 && champion.mapInfluence >= 7) {
-    return { title: "マップ関与", body: "全体状況を見て動く傾向と、ロームやオブジェクト関与性能が一致しています。" };
-  }
-  if (axisScore.processing <= 45 && champion.complexity <= 4) {
-    return { title: "操作安定性", body: "操作負荷を抑えながら、役割価値を出しやすい選択です。" };
-  }
-  return { title: "総合相性", body: "回答傾向の軸バランスと、チャンピオン特性の総合相性が高いです。" };
+  const reasons: string[] = [];
+  if (axisScore.winCondition >= 60 && champion.carryPotential >= 7) reasons.push("終盤に自分でダメージを出して勝ち切る型と噛み合います");
+  if (axisScore.responsibility >= 60 && champion.mapInfluence >= 7) reasons.push("マップ関与の高さを活かして試合全体へ影響を出せます");
+  if (axisScore.initiative >= 60 && champion.engage >= 7) reasons.push("先手を取るプレイ傾向と、仕掛け性能が一致しています");
+  if (axisScore.processing <= 45 && champion.complexity <= 4) reasons.push("操作負荷を抑え、判断に集中しやすい構成です");
+  if (reasons.length === 0) reasons.push("回答傾向とチャンピオン特性の距離が短く、安定して力を出しやすいです");
+
+  return {
+    title: "推薦理由",
+    body: reasons.slice(0, 2).join("。") + "。"
+  };
 };
 
 export const recommendChampions = (axisScore: AxisScore, roleHints: Role[], limit = 5): DiagnosisResult["recommendedChampions"] => {

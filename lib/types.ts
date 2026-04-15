@@ -34,6 +34,7 @@ export interface Question {
   options: QuestionOption[];
   reverse: boolean;
   weights: AxisWeight[];
+  intent: string;
 }
 
 export type AnswerMap = Record<string, OptionValue>;
@@ -48,6 +49,8 @@ export interface ResultType {
   name: string;
   oneLiner: string;
   description: string;
+  strengths: string[];
+  caution: string;
   conditions: Partial<Record<AxisKey, { min?: number; max?: number }>>;
 }
 
