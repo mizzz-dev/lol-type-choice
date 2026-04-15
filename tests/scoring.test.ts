@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { questions } from "@/data/questions";
+import { parseResultQuery } from "@/lib/resultQuery";
 import { buildDiagnosisResult, normalizeAnswerValue } from "@/lib/scoring";
 import { decodeAnswers, encodeAnswers } from "@/lib/share";
 import type { AnswerMap } from "@/lib/types";
@@ -44,6 +45,19 @@ describe("diagnosis scoring", () => {
 
     const decoded = decodeAnswers(encoded as string);
     expect(decoded).toEqual(toArray(answers));
+  });
+
+  test("URLのchecksumが壊れていたらdecodeに失敗する", () => {
+    const encoded = encodeAnswers(toArray(answerAll(1)));
+    expect(encoded).not.toBeNull();
+
+    const tampered = `${encoded}9`;
+    expect(decodeAnswers(tampered)).toBeNull();
+  });
+
+  test("結果クエリ不正時はparseResultQueryがエラーを返す", () => {
+    const parsed = parseResultQuery(undefined);
+    expect(parsed.ok).toBe(false);
   });
 
   test("normalizeAnswerValueは範囲外を丸める", () => {
