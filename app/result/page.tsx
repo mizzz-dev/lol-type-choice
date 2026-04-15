@@ -1,9 +1,10 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { AxisBars } from "@/components/AxisBars";
+import { ResultActions } from "@/components/ResultActions";
 import { questions } from "@/data/questions";
 import { parseResultQuery } from "@/lib/resultQuery";
 import { buildDiagnosisResult } from "@/lib/scoring";
+import { AXIS_KEYS } from "@/lib/types";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -25,11 +26,21 @@ const getResult = async (searchParams: Props["searchParams"]) => {
   }
 };
 
+const axisLabelMap: Record<(typeof AXIS_KEYS)[number], string> = {
+  initiative: "主導性",
+  riskTolerance: "リスク許容",
+  decisionStyle: "適応判断",
+  winCondition: "自己キャリー",
+  combatRange: "近接志向",
+  processing: "処理負荷耐性",
+  tempo: "終盤志向",
+  responsibility: "全体責任"
+};
+
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  // TODO: 将来は dynamic OG image route を追加し、結果タイプごとのOGP画像を返す。
   const resolved = await getResult(searchParams);
-  const title = resolved.ok ? `${resolved.result.type.name} | LoL診断結果` : "診断結果 | LoL Playstyle Type Finder";
-  const description = resolved.ok ? resolved.result.type.oneLiner : "LoL向けプレイスタイル診断結果";
+  const title = resolved.ok ? `${resolved.result.type.name} | LoL診断 β` : "診断結果 | LoL Playstyle Type Finder β";
+  const description = resolved.ok ? `${resolved.result.type.oneLiner} 8軸スコアとおすすめロールを表示。` : "LoL向けプレイスタイル診断結果";
 
   return {
     title,
@@ -63,24 +74,46 @@ export default async function ResultPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">結果を表示できませんでした</h1>
         <p className="text-muted">{resolved.reason}</p>
         <p className="text-sm text-muted">URLが不正、または古い可能性があります。診断をやり直してください。</p>
-        <Link href="/diagnosis" className="btn-primary w-fit">
+        <a href="/diagnosis" className="btn-primary w-fit">
           診断をやり直す
-        </Link>
+        </a>
       </div>
     );
   }
 
   const { result, encoded } = resolved;
-  const shareText = encodeURIComponent(`LoL診断結果: ${result.type.name} - ${result.type.oneLiner}`);
-  const shareUrl = encodeURIComponent(`${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/result?r=${encoded}`);
+  const siteRoot = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const directUrl = `${siteRoot}/result?r=${encoded}`;
+  const shareText = `LoL診断βの結果は「${result.type.name}」でした。${result.type.oneLiner}`;
+
+  const sortedAxes = [...AXIS_KEYS]
+    .map((axis) => ({ axis, score: result.axisScore[axis] }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 
   return (
     <div className="space-y-4">
       <section className="card space-y-3">
-        <p className="text-sm text-accent">診断結果</p>
+        <p className="text-sm text-accent">診断結果（β）</p>
         <h1 className="text-3xl font-bold">{result.type.name}</h1>
         <p className="text-lg text-cyan-100">{result.type.oneLiner}</p>
         <p className="text-muted">{result.type.description}</p>
+
+        <div className="rounded-lg border border-slate-700 p-3 text-sm">
+          <p className="font-semibold text-text">あなたの強み（上位3軸）</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
+            {sortedAxes.map(({ axis, score }) => (
+              <li key={axis}>
+                {axisLabelMap[axis]}: {score}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-lg border border-amber-300/40 bg-amber-100/10 p-3 text-sm text-amber-100">
+          <p className="font-semibold">プレイ時の注意</p>
+          <p>{result.type.caution}</p>
+        </div>
       </section>
 
       <section className="card space-y-4">
@@ -89,7 +122,7 @@ export default async function ResultPage({ searchParams }: Props) {
       </section>
 
       <section className="card space-y-3">
-        <h2 className="text-xl font-semibold">おすすめロール</h2>
+        <h2 className="text-xl font-semibold">おすすめロール（上位2）</h2>
         <div className="flex gap-2">
           {result.recommendedRoles.map((role) => (
             <span key={role} className="rounded-full border border-cyan-300/40 bg-cyan-400/10 px-4 py-1 text-sm">
@@ -113,7 +146,8 @@ export default async function ResultPage({ searchParams }: Props) {
                   </p>
                   <span className="text-sm text-cyan-200">相性 {Math.round(score)}</span>
                 </div>
-                <p className="mt-1 text-sm text-cyan-100">{reason.title}</p>
+                <p className="mt-1 text-xs text-muted">{champion.tags.join(" / ")}</p>
+                <p className="mt-2 text-sm text-cyan-100">{reason.title}</p>
                 <p className="mt-1 text-sm text-muted">{reason.body}</p>
               </li>
             ))}
@@ -121,19 +155,7 @@ export default async function ResultPage({ searchParams }: Props) {
         )}
       </section>
 
-      <section className="card flex flex-wrap gap-2">
-        <Link href="/diagnosis" className="btn-secondary">
-          再診断する
-        </Link>
-        <a
-          href={`https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary"
-        >
-          Xで共有
-        </a>
-      </section>
+      <ResultActions shareUrl={directUrl} shareText={shareText} />
     </div>
   );
 }
