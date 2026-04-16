@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AxisBars } from "@/components/AxisBars";
 import { ResultActions } from "@/components/ResultActions";
+import { OfficialDisclaimerFaq } from "@/components/OfficialDisclaimerFaq";
 import { questions } from "@/data/questions";
 import { parseResultQuery } from "@/lib/resultQuery";
 import { buildDiagnosisResult } from "@/lib/scoring";
@@ -156,6 +157,7 @@ export default async function ResultPage({ searchParams }: Props) {
       </section>
 
       <ResultActions shareUrl={directUrl} shareText={shareText} />
+      <OfficialDisclaimerFaq />
     </div>
   );
 }
