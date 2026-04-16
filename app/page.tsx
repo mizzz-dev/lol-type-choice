@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OfficialDisclaimerFaq } from "@/components/OfficialDisclaimerFaq";
 
 export default function HomePage() {
   return (
@@ -27,12 +28,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="card text-sm text-muted">
-        <h2 className="mb-2 text-lg font-semibold text-text">注意書き（非公式）</h2>
-        <p>
-          本サイトは Riot Games の公式サービスではない、非公式ファンプロジェクトです。League of Legends および関連名称・アセットの権利は Riot Games に帰属します。
-        </p>
-      </section>
+      <OfficialDisclaimerFaq />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { questions } from "@/data/questions";
 import { ProgressBar } from "@/components/ProgressBar";
 import { QuestionCard } from "@/components/QuestionCard";
+import { OfficialDisclaimerFaq } from "@/components/OfficialDisclaimerFaq";
 import { encodeAnswers } from "@/lib/share";
 import { trackEvent } from "@/lib/analytics";
 import { isOptionValue } from "@/lib/validation";
@@ -120,6 +121,8 @@ export default function DiagnosisPage() {
           {index === questions.length - 1 ? "結果を見る" : "次へ"}
         </button>
       </div>
+
+      <OfficialDisclaimerFaq />
     </div>
   );
 }
