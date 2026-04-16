@@ -39,7 +39,12 @@ const decodeLegacyV1 = (body: string): number[] | null => {
 export const decodeAnswers = (encoded: string | null | undefined): number[] | null => {
   if (!encoded) return null;
 
-  const [version, body, check] = encoded.split("_");
+  const tokens = encoded.split("_");
+  if (tokens.length !== 3) {
+    return null;
+  }
+
+  const [version, body, check] = tokens;
 
   if (version === LEGACY_VERSION) {
     return decodeLegacyV1(body ?? "");

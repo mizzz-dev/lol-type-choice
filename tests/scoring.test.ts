@@ -4,6 +4,7 @@ import { parseResultQuery } from "@/lib/resultQuery";
 import { buildDiagnosisResult, normalizeAnswerValue } from "@/lib/scoring";
 import { decodeAnswers, encodeAnswers } from "@/lib/share";
 import type { AnswerMap } from "@/lib/types";
+import { validateAnswerMap } from "@/lib/validation";
 
 const answerAll = (value: -2 | -1 | 0 | 1 | 2): AnswerMap =>
   Object.fromEntries(questions.map((question) => [question.id, value]));
@@ -60,9 +61,25 @@ describe("diagnosis scoring", () => {
     expect(decodeAnswers(tampered)).toBeNull();
   });
 
+  test("URLフォーマットに余分な区切りがあればdecodeに失敗する", () => {
+    const encoded = encodeAnswers(toArray(answerAll(1)));
+    expect(encoded).not.toBeNull();
+    expect(decodeAnswers(`${encoded}_extra`)).toBeNull();
+  });
+
   test("結果クエリ不正時はparseResultQueryがエラーを返す", () => {
     const parsed = parseResultQuery(undefined);
     expect(parsed.ok).toBe(false);
+  });
+
+  test("回答Mapに不明な設問IDがあればvalidationが失敗する", () => {
+    const answerMap = {
+      ...answerAll(0),
+      unknown_question_id: 1
+    } as AnswerMap;
+
+    const result = validateAnswerMap(answerMap);
+    expect(result.valid).toBe(false);
   });
 
   test("normalizeAnswerValueは範囲外を丸める", () => {
