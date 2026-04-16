@@ -11,7 +11,11 @@ export const readSingleQueryParam = (raw: SearchParamValue): string | null => {
   return null;
 };
 
-export const toAnswerMap = (answers: number[]): AnswerMap => {
+export const toAnswerMap = (answers: number[]): AnswerMap | null => {
+  if (answers.length !== questions.length) {
+    return null;
+  }
+
   return Object.fromEntries(questions.map((question, index) => [question.id, answers[index]]));
 };
 
@@ -29,6 +33,10 @@ export const parseResultQuery = (raw: SearchParamValue):
   }
 
   const answerMap = toAnswerMap(answers);
+  if (!answerMap) {
+    return { ok: false, reason: "URL内の診断データ件数が不正です。" };
+  }
+
   const validation = validateAnswerMap(answerMap);
   if (!validation.valid) {
     return { ok: false, reason: validation.message ?? "診断データの整合性チェックに失敗しました。" };
