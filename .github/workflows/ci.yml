@@ -42,14 +42,27 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: package-lock.jsonを生成
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        id: generate-lockfile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund 2>&1 | tee npm-install.log
 
-      - name: 生成したlockfileを保存
+      - name: lockfile生成ログを保存
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: generated-package-lock
-          path: package-lock.json
+          path: |
+            package-lock.json
+            npm-install.log
+          if-no-files-found: warn
           retention-days: 1
+
+      - name: lockfile生成エラーを反映
+        if: steps.generate-lockfile.outcome == 'failure'
+        run: exit 1
 
       - name: 依存関係をインストール
         run: npm ci --no-audit --no-fund
