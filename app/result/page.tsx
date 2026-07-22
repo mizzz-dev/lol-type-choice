@@ -5,6 +5,7 @@ import { OfficialDisclaimerFaq } from "@/components/OfficialDisclaimerFaq";
 import { questions } from "@/data/questions";
 import { parseResultQuery } from "@/lib/resultQuery";
 import { buildDiagnosisResult } from "@/lib/scoring";
+import { buildSiteUrl } from "@/lib/site";
 import { AXIS_KEYS } from "@/lib/types";
 
 type Props = {
@@ -83,8 +84,7 @@ export default async function ResultPage({ searchParams }: Props) {
   }
 
   const { result, encoded } = resolved;
-  const siteRoot = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const directUrl = `${siteRoot}/result?r=${encoded}`;
+  const directUrl = buildSiteUrl("/result", { r: encoded });
   const shareText = `LoL診断βの結果は「${result.type.name}」でした。${result.type.oneLiner}`;
 
   const sortedAxes = [...AXIS_KEYS]

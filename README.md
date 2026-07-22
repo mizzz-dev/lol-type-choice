@@ -20,6 +20,8 @@ app/
   page.tsx
   diagnosis/page.tsx
   result/page.tsx
+  robots.ts
+  sitemap.ts
 components/
   AxisBars.tsx
   ProgressBar.tsx
@@ -34,10 +36,12 @@ lib/
   resultQuery.ts
   scoring.ts
   share.ts
+  site.ts
   types.ts
   validation.ts
 tests/
   scoring.test.ts
+  site.test.ts
 ```
 
 ## 使用技術
@@ -78,6 +82,45 @@ npm run build
 ```
 
 `main` 向けPull Requestと `main` へのpushでは、GitHub Actionsが上記コマンドを順番に実行します。いずれかが失敗した場合、CIは失敗として終了します。
+
+## レンタルサーバーへの公開準備
+
+Node.js 22.xを実行できるレンタルサーバーを前提としています。共有レンタルサーバーでNode.jsの常駐プロセスを起動できない場合、この構成のままでは公開できません。
+
+### 1. 環境変数を設定
+
+`.env.example` を参考に、本番環境で公開URLを設定します。
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://example.com
+```
+
+- HTTPSの本番URLを指定する
+- 末尾スラッシュは不要
+- サブディレクトリ配下への公開は現在未対応
+- 未設定または不正な値の場合は `http://localhost:3000` へフォールバックするため、本番では必ず設定する
+
+### 2. 本番ビルドと起動
+
+```bash
+npm ci --no-audit --no-fund
+npm run build
+npm run start
+```
+
+プロセスマネージャーやレンタルサーバーのNode.jsアプリ管理機能を使用し、`npm run start` を常駐させます。
+
+### 3. 公開後の確認
+
+- `/` がHTTPSで表示される
+- `/diagnosis` から診断を完了できる
+- 結果共有URLが本番ドメインになる
+- `/robots.txt` が表示される
+- `/sitemap.xml` にトップページと診断ページが含まれる
+- `/result` が検索対象外として設定されている
+- GitHub ActionsのLint / Test / Buildが成功している
+
+DNS、SSL、リバースプロキシ、プロセス再起動、ログ保存の具体手順は、利用するレンタルサーバーの機能に合わせて別途設定します。
 
 ## 計測イベント（最小実装）
 
