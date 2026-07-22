@@ -47,9 +47,17 @@ tests/
 - Tailwind CSS
 - Vitest
 
+## 必要環境
+
+- Node.js 22.x
+- npm 10.x
+
+Node.jsのバージョンは `.nvmrc` で固定しています。
+
 ## セットアップ
 
 ```bash
+nvm use
 npm install
 ```
 
@@ -61,13 +69,15 @@ npm run dev
 
 ブラウザで `http://localhost:3000` を開いて確認します。
 
-## テスト
+## 品質確認
 
 ```bash
-npm run test
 npm run lint
+npm run test
 npm run build
 ```
+
+`main` 向けPull Requestと `main` へのpushでは、GitHub Actionsが上記コマンドを順番に実行します。いずれかが失敗した場合、CIは失敗として終了します。
 
 ## 計測イベント（最小実装）
 

@@ -1,6 +1,6 @@
 import { questions } from "@/data/questions";
 import { decodeAnswers } from "@/lib/share";
-import type { AnswerMap } from "@/lib/types";
+import type { AnswerMap, OptionValue } from "@/lib/types";
 import { validateAnswerMap } from "@/lib/validation";
 
 export type SearchParamValue = string | string[] | undefined;
@@ -11,7 +11,7 @@ export const readSingleQueryParam = (raw: SearchParamValue): string | null => {
   return null;
 };
 
-export const toAnswerMap = (answers: number[]): AnswerMap | null => {
+export const toAnswerMap = (answers: OptionValue[]): AnswerMap | null => {
   if (answers.length !== questions.length) {
     return null;
   }
