@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: リポジトリを取得
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Node.jsをセットアップ
         uses: actions/setup-node@v4
@@ -42,27 +44,21 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: package-lock.jsonを生成
-        id: generate-lockfile
-        continue-on-error: true
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: package-lock.jsonをブランチへ固定
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         run: |
-          set -o pipefail
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund 2>&1 | tee npm-install.log
+          if [ -z "$(git status --porcelain -- package-lock.json)" ]; then
+            exit 0
+          fi
 
-      - name: lockfile生成ログを保存
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-package-lock
-          path: |
-            package-lock.json
-            npm-install.log
-          if-no-files-found: warn
-          retention-days: 1
-
-      - name: lockfile生成エラーを反映
-        if: steps.generate-lockfile.outcome == 'failure'
-        run: exit 1
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "package-lock.jsonを生成して依存関係を固定"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
       - name: 依存関係をインストール
         run: npm ci --no-audit --no-fund
@@ -74,4 +70,21 @@ jobs:
         run: npm run test
 
       - name: Build
-        run: npm run build
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+
+      - name: Build失敗ログを保存
+        if: steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-error-log
+          path: build.log
+          retention-days: 1
+
+      - name: Buildエラーを反映
+        if: steps.build.outcome == 'failure'
+        run: exit 1
