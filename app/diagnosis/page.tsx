@@ -35,10 +35,13 @@ export default function DiagnosisPage() {
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const hasCompletedRef = useRef(false);
+  const hasTrackedAbandonmentRef = useRef(false);
+  const answeredCountRef = useRef(0);
 
   useEffect(() => {
     const restored = parseStoredAnswers(window.sessionStorage.getItem(STORAGE_KEY));
     if (restored) {
+      answeredCountRef.current = restored.filter((value) => value !== null).length;
       setAnswers(restored);
     }
     trackEvent("diagnosis_started", { question_count: questions.length, version: "beta" });
@@ -48,15 +51,22 @@ export default function DiagnosisPage() {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
   }, [answers]);
 
-  useEffect(
-    () => () => {
-      if (!hasCompletedRef.current) {
-        const answered = answers.filter((v) => v !== null).length;
-        trackEvent("diagnosis_abandoned", { answered_count: answered, question_count: questions.length });
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (hasCompletedRef.current || hasTrackedAbandonmentRef.current) {
+        return;
       }
-    },
-    [answers]
-  );
+
+      hasTrackedAbandonmentRef.current = true;
+      trackEvent("diagnosis_abandoned", {
+        answered_count: answeredCountRef.current,
+        question_count: questions.length
+      });
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, []);
 
   const question = questions[index];
   const answeredCount = useMemo(() => answers.filter((v) => v !== null).length, [answers]);
@@ -68,6 +78,7 @@ export default function DiagnosisPage() {
     setAnswers((prev) => {
       const next = [...prev];
       next[index] = value;
+      answeredCountRef.current = next.filter((answer) => answer !== null).length;
       return next;
     });
     trackEvent("question_answered", { question_id: question.id, question_index: index + 1, value });
