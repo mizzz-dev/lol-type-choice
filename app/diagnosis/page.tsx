@@ -52,7 +52,7 @@ export default function DiagnosisPage() {
   }, [answers]);
 
   useEffect(() => {
-    const handlePageHide = () => {
+    const trackAbandonment = () => {
       if (hasCompletedRef.current || hasTrackedAbandonmentRef.current) {
         return;
       }
@@ -64,8 +64,13 @@ export default function DiagnosisPage() {
       });
     };
 
-    window.addEventListener("pagehide", handlePageHide);
-    return () => window.removeEventListener("pagehide", handlePageHide);
+    window.addEventListener("pagehide", trackAbandonment);
+    window.addEventListener("popstate", trackAbandonment);
+
+    return () => {
+      window.removeEventListener("pagehide", trackAbandonment);
+      window.removeEventListener("popstate", trackAbandonment);
+    };
   }, []);
 
   const question = questions[index];
