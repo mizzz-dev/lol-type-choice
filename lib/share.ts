@@ -1,4 +1,5 @@
 import { questions } from "@/data/questions";
+import type { OptionValue } from "@/lib/types";
 import { isOptionValue } from "@/lib/validation";
 
 const OFFSET = 2;
@@ -23,20 +24,20 @@ export const encodeAnswers = (answers: number[]): string | null => {
   return `${VERSION}_${body}_${checksum(body)}`;
 };
 
-const decodeLegacyV1 = (body: string): number[] | null => {
+const decodeLegacyV1 = (body: string): OptionValue[] | null => {
   if (!body || body.length !== questions.length) {
     return null;
   }
 
   const answers = body.split("").map((char) => Number.parseInt(char, 10) - OFFSET);
-  if (answers.some((value) => !isOptionValue(value))) {
+  if (!answers.every(isOptionValue)) {
     return null;
   }
 
   return answers;
 };
 
-export const decodeAnswers = (encoded: string | null | undefined): number[] | null => {
+export const decodeAnswers = (encoded: string | null | undefined): OptionValue[] | null => {
   if (!encoded) return null;
 
   const tokens = encoded.split("_");
@@ -59,7 +60,7 @@ export const decodeAnswers = (encoded: string | null | undefined): number[] | nu
   }
 
   const answers = body.split("").map((char) => Number.parseInt(char, 10) - OFFSET);
-  if (answers.some((value) => !isOptionValue(value))) {
+  if (!answers.every(isOptionValue)) {
     return null;
   }
 
