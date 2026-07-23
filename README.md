@@ -49,6 +49,7 @@ lib/
   validation.ts
 scripts/
   bootstrap-sakura-vps.sh
+  check-sakura-vps-files.sh
   prepare-standalone.mjs
   smoke-standalone.mjs
   smoke-test.mjs
@@ -90,7 +91,7 @@ npm run dev
 ## 品質確認
 
 ```bash
-bash -n scripts/bootstrap-sakura-vps.sh
+bash scripts/check-sakura-vps-files.sh
 npm run lint
 npm run test
 npm run build
@@ -99,7 +100,7 @@ npm run smoke:standalone
 
 `npm run build` はNext.jsのstandalone成果物を生成し、`public` と `.next/static` を実行ディレクトリへ配置します。
 
-`main` 向けPull Requestと `main` へのpushでは、GitHub ActionsがVPSセットアップスクリプト構文確認・Lint・Test・Build・standalone起動スモークテストを順番に実行します。いずれかが失敗した場合、CIは失敗として終了します。
+`main` 向けPull Requestと `main` へのpushでは、GitHub ActionsがさくらのVPS設定検証・Lint・Test・Build・standalone起動スモークテストを順番に実行します。いずれかが失敗した場合、CIは失敗として終了します。
 
 ## レンタルサーバーへの公開
 
