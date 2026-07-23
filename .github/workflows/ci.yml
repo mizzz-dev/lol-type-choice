@@ -28,6 +28,9 @@ jobs:
       - name: リポジトリを取得
         uses: actions/checkout@v4
 
+      - name: VPSセットアップスクリプト構文確認
+        run: bash -n scripts/bootstrap-sakura-vps.sh
+
       - name: Node.jsをセットアップ
         uses: actions/setup-node@v4
         with:
