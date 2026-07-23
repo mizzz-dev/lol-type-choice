@@ -27,7 +27,9 @@ require_text() {
 require_text "${bootstrap_file}" 'ufw limit OpenSSH'
 require_text "${bootstrap_file}" "ufw allow 'Nginx Full'"
 require_text "${bootstrap_file}" 'ufw --force enable'
-require_text "${bootstrap_file}" 'node_22.x'
+require_text "${bootstrap_file}" 'NODE_MAJOR="22"'
+require_text "${bootstrap_file}" 'deb.nodesource.com/node_${NODE_MAJOR}.x'
+require_text "${bootstrap_file}" 'NPM_VERSION="10.9.8"'
 require_text "${bootstrap_file}" 'PM2_VERSION="7.0.3"'
 
 ssh_rule_line="$(grep -nF 'ufw limit OpenSSH' "${bootstrap_file}" | head -n 1 | cut -d: -f1)"
