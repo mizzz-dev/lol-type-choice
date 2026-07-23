@@ -56,11 +56,11 @@ df -h
 
 ## 3. 初期セットアップ
 
-リポジトリを取得し、スクリプトを確認してから実行します。
+一時作業ディレクトリへリポジトリを取得し、スクリプトを確認してから実行します。
 
 ```bash
-git clone https://github.com/mizzz-dev/lol-type-choice.git
-cd lol-type-choice
+git clone https://github.com/mizzz-dev/lol-type-choice.git ~/lol-type-choice-setup
+cd ~/lol-type-choice-setup
 less scripts/bootstrap-sakura-vps.sh
 sudo bash scripts/bootstrap-sakura-vps.sh
 ```
@@ -89,12 +89,29 @@ ssh ubuntu@<VPSのIPv4アドレス>
 
 ## 5. アプリ配置
 
+配置先が空であることを確認します。
+
 ```bash
-sudo rm -rf /var/www/lol-type-choice
-sudo git clone https://github.com/mizzz-dev/lol-type-choice.git /var/www/lol-type-choice
-sudo chown -R ubuntu:ubuntu /var/www/lol-type-choice
+sudo find /var/www/lol-type-choice -mindepth 1 -maxdepth 1 -print
+```
+
+何も表示されない場合だけcloneします。
+
+```bash
+sudo -u ubuntu git clone https://github.com/mizzz-dev/lol-type-choice.git /var/www/lol-type-choice
 cd /var/www/lol-type-choice
 ```
+
+既にGit作業ツリーが存在する場合は削除せず、状態を確認します。
+
+```bash
+cd /var/www/lol-type-choice
+git status --short
+git remote -v
+git fetch origin
+```
+
+サーバー上で直接編集した未コミット差分がある場合、デプロイを中止して差分の扱いを決めてください。
 
 ## 6. 本番環境変数
 
@@ -155,10 +172,20 @@ curl --fail http://127.0.0.1:3000/api/health
 
 ## 9. Nginx設定
 
+既存の同名設定がないことを確認してから配置します。
+
 ```bash
+sudo test ! -e /etc/nginx/sites-available/lol-type-choice
 sudo cp deploy/sakura-vps/nginx.conf.template /etc/nginx/sites-available/lol-type-choice
 sudo sed -i 's/__DOMAIN__/<公開ドメイン>/g' /etc/nginx/sites-available/lol-type-choice
 sudo ln -s /etc/nginx/sites-available/lol-type-choice /etc/nginx/sites-enabled/lol-type-choice
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+動作確認後にデフォルトサイトを無効化します。
+
+```bash
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
@@ -238,10 +265,11 @@ SMOKE_BASE_URL=https://<公開ドメイン> npm run smoke
 
 ## 14. 更新デプロイ
 
-GitHub Actionsが成功したコミットSHAへ固定します。
+GitHub Actionsが成功したコミットSHAへ固定します。未コミット差分がある場合は中止します。
 
 ```bash
 cd /var/www/lol-type-choice
+test -z "$(git status --porcelain)"
 git fetch origin
 git checkout <デプロイ対象コミットSHA>
 npm ci --no-audit --no-fund
@@ -257,6 +285,7 @@ SMOKE_BASE_URL=https://<公開ドメイン> npm run smoke
 
 ```bash
 cd /var/www/lol-type-choice
+test -z "$(git status --porcelain)"
 git checkout <直前の正常コミットSHA>
 npm ci --no-audit --no-fund
 npm run build
@@ -297,3 +326,11 @@ df -h
 - 外形監視サービス
 - 自動デプロイ
 - アプリケーションデータのバックアップ
+
+## 参考資料
+
+- [さくらのVPS 料金・仕様](https://vps.sakura.ad.jp/specification/)
+- [さくらのVPS Ubuntu 24.04](https://manual.sakura.ad.jp/vps/os-packages/ubuntu-24.04.html)
+- [さくらのVPS 新規追加](https://manual.sakura.ad.jp/vps/support/service/apply-cp-vps.html)
+- [NodeSource Node.js 22 setup](https://github.com/nodesource/distributions/blob/master/scripts/deb/setup_22.x)
+- [Certbot Nginx instructions](https://certbot.eff.org/instructions)
